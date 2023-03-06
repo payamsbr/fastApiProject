@@ -1,27 +1,19 @@
 import configparser
 import sqlite3
 
-
 class GraphETLDataBase:
+    dbName = None
+    dbMaxApiCon = None
+
     def __init__(self):
 
         config = configparser.ConfigParser()
         config.read('config.ini')
-
-        db_name = config['sqlite']['Name']
-        self.con = sqlite3.connect(db_name, check_same_thread=False)
-
-        def dict_factory(cursor, row):
-            d = {}
-            for idx, col in enumerate(cursor.description):
-                d[col[0]] = row[idx]
-            return d
-
-        self.con.row_factory = dict_factory
+        self.dbName = config['sqlite']['Name']
+        self.dbMaxApiCon = config['sqlite']['MaxApiConnections']
 
         # initialize tables
-        cur = self.con.cursor()
-        cur.execute('''CREATE TABLE IF NOT EXISTS etl (
+        self._execute_single_query('''CREATE TABLE IF NOT EXISTS etl (
         id INTEGER PRIMARY KEY, 
         from_column TEXT NOT NULL,
         to_column TEXT NOT NULL,
@@ -38,10 +30,37 @@ class GraphETLDataBase:
         start_date DATETIME NOT NULL,
         end_date DATETIME NOT NULL,
         update_interval INTEGER NOT NULL,
-        enabled BOOELAN DEFAULT 1);''')
+        enabled BOOELAN DEFAULT 1);''', _commit=True)
+
+    def _prepare_db_connection(self):
+        def dict_factory(cursor, row):
+            d = {}
+            for idx, col in enumerate(cursor.description):
+                d[col[0]] = row[idx]
+            return d
+
+        con = sqlite3.connect(self.dbName, check_same_thread=True)
+        con.row_factory = dict_factory
+        self.dbMaxApiCon -= 1
+        return con
+
+    def _terminate_db_connection(self, con: sqlite3.Connection):
+        con.close()
+        self.dbMaxApiCon += 1
+
+    def _execute_single_query(self, _query: str, _result: bool = False, _commit: bool = True) -> list | bool | None:
+        con = self._prepare_db_connection()
+        cur = con.cursor()
+        cur.execute(_query)
+        if _commit:
+            con.commit()
+        if _result:
+            result = cur.fetchall()
+            self._terminate_db_connection(con)
+            return result
+        self._terminate_db_connection(con)
 
     def create_or_update(self, params, etl_id=None):
-        cur = self.con.cursor()
         if etl_id is None:
             query = f'''INSERT INTO etl (from_column, to_column, from_node_type, to_node_type, edge_formula, 
             relation_type, table_name, datetime_column, des, start_date, end_date, update_interval, enabled) 
@@ -55,12 +74,8 @@ class GraphETLDataBase:
             table_name='{params.table_name}', datetime_column='{params.datetime_column}', 
             des='{params.des}', start_date='{params.start_date}', end_date='{params.end_date}', 
             update_interval={params.update_interval}, enabled={params.enabled} WHERE id = {etl_id};'''
-        cur.execute(query)
-        print(query)
-        self.con.commit()
+        self._execute_single_query(query, _commit=True)
 
-    def list_with_page(self, page=1):
-        cur = self.con.cursor()
+    def list_with_page(self, page: int = 1) -> list:
         offset = (page - 1) * 10
-        results = cur.execute(f'''SELECT * FROM etl LIMIT 10 OFFSET {offset};''').fetchall()
-        return results
+        return self._execute_single_query(f'SELECT * FROM etl LIMIT 10 OFFSET {offset};', _result=True)
