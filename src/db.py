@@ -1,16 +1,17 @@
 import configparser
 import sqlite3
 
+
 class GraphETLDataBase:
-    dbName = None
-    dbMaxApiCon = None
+    dbName: str = None
+    dbMaxApiCon: int = None
 
     def __init__(self):
 
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.dbName = config['sqlite']['Name']
-        self.dbMaxApiCon = config['sqlite']['MaxApiConnections']
+        self.dbMaxApiCon = int(config['sqlite']['MaxApiConnections'])
 
         # initialize tables
         self._execute_single_query('''CREATE TABLE IF NOT EXISTS etl (
@@ -29,8 +30,9 @@ class GraphETLDataBase:
         log_date DATETIME,
         start_date DATETIME NOT NULL,
         end_date DATETIME NOT NULL,
+        jump_type INTEGER,
         update_interval INTEGER NOT NULL,
-        enabled BOOELAN DEFAULT 1);''', _commit=True)
+        enabled BOOELAN DEFAULT TRUE);''', _commit=True)
 
     def _prepare_db_connection(self):
         def dict_factory(cursor, row):
@@ -62,18 +64,20 @@ class GraphETLDataBase:
 
     def create_or_update(self, params, etl_id=None):
         if etl_id is None:
-            query = f'''INSERT INTO etl (from_column, to_column, from_node_type, to_node_type, edge_formula, 
-            relation_type, table_name, datetime_column, des, start_date, end_date, update_interval, enabled) 
+            query = f'''INSERT INTO etl (from_column,to_column,from_node_type,to_node_type,edge_formula, 
+            relation_type,table_name,datetime_column,des,start_date,end_date,jump_type,update_interval,enabled) 
             VALUES ('{params.from_column}','{params.to_column}','{params.from_node_type}','{params.to_node_type}',
             '{params.edge_formula}','{params.relation_type}','{params.table_name}','{params.datetime_column}',
-            '{params.des}','{params.start_date}','{params.end_date}',{params.update_interval},{params.enabled});'''
+            '{params.des}','{params.start_date}','{params.end_date}',{params.jump_type},{params.update_interval},
+            {params.enabled});'''
         else:
-            query = f'''UPDATE etl SET from_column='{params.from_column}', to_column='{params.to_column}', 
-            from_node_type='{params.from_node_type}', to_node_type='{params.to_node_type}', 
-            edge_formula='{params.edge_formula}', relation_type='{params.relation_type}', 
-            table_name='{params.table_name}', datetime_column='{params.datetime_column}', 
-            des='{params.des}', start_date='{params.start_date}', end_date='{params.end_date}', 
-            update_interval={params.update_interval}, enabled={params.enabled} WHERE id = {etl_id};'''
+            query = f'''UPDATE etl SET from_column='{params.from_column}',to_column='{params.to_column}', 
+            from_node_type='{params.from_node_type}',to_node_type='{params.to_node_type}', 
+            edge_formula='{params.edge_formula}',relation_type='{params.relation_type}', 
+            table_name='{params.table_name}',datetime_column='{params.datetime_column}', 
+            des='{params.des}',start_date='{params.start_date}',end_date='{params.end_date}',
+            jump_type={params.jump_type},update_interval={params.update_interval},enabled={params.enabled} 
+            WHERE id = {etl_id};'''
         self._execute_single_query(query, _commit=True)
 
     def list_with_page(self, page: int = 1) -> list:

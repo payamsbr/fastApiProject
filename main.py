@@ -2,9 +2,11 @@ from typing import List
 from fastapi import FastAPI
 from models.ModelEtl import ModelEtl
 from src.db import GraphETLDataBase
+from src.manager import EtlManager
 
 app = FastAPI()
 db = GraphETLDataBase()
+manager = EtlManager(10, database=db)
 
 
 @app.post("/etl")

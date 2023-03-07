@@ -1,4 +1,11 @@
 from pydantic import BaseModel, Field
+from enum import Enum
+from datetime import datetime
+
+
+class EnumJumpTypes(Enum):
+    byDate = 0
+    byID = 1
 
 
 class ModelEtl(BaseModel):
@@ -15,7 +22,11 @@ class ModelEtl(BaseModel):
     des: str
     log: str | None = None  # not required, can be None
     log_date: str | None = None  # not required, can be None
-    start_date: str
-    end_date: str
+    start_date: datetime
+    end_date: datetime
+    jump_type: EnumJumpTypes
     update_interval: int
-    enabled: int
+    enabled: bool
+
+    class Config:
+        use_enum_values = True
