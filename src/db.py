@@ -1,10 +1,12 @@
 import configparser
 import sqlite3
+from queue import Queue
 
 
 class GraphETLDataBase:
     dbName: str = None
     dbMaxApiCon: int = None
+    dbConPool: Queue = None
 
     def __init__(self):
 
@@ -12,6 +14,13 @@ class GraphETLDataBase:
         config.read('config.ini')
         self.dbName = config['sqlite']['Name']
         self.dbMaxApiCon = int(config['sqlite']['MaxApiConnections'])
+
+        # setup shared connection pool (used for threads)
+        max_pool_size = int(config['sqlite']['MaxPoolSize'])
+        self.dbConPool = Queue(maxsize=max_pool_size)
+        for i in range(max_pool_size):
+            con = sqlite3.connect(self.dbName, check_same_thread=False)
+            self.dbConPool.put(con)
 
         # initialize tables
         self._execute_single_query('''CREATE TABLE IF NOT EXISTS etl (

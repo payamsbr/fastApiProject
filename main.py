@@ -6,7 +6,7 @@ from src.manager import EtlManager
 
 app = FastAPI()
 db = GraphETLDataBase()
-manager = EtlManager(10, database=db)
+manager = EtlManager(database=db)
 
 
 @app.post("/etl")
