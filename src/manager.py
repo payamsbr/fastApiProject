@@ -45,10 +45,20 @@ class EtlManager(object):
         self.start()
 
     def _etl_check(self):
-        # scan database for ETL
+        # scan database, list ETL records
         con = self.database.dbConPool.get()
         cur = con.cursor()
-        cur.execute('SELECT * FROM [etl] WHERE [enabled] = 1')
+        cur.execute('SELECT * FROM [etl] WHERE [enabled] = 1 AND [busy] = 0')
         result = cur.fetchall()
+        # create workers per each ETL
+        for etl_data in result:
+            etl_id = etl_data['id']
+            # update ETL record (mark as busy & update cursor)
+
+            # start_date = etl_data['start_date']
+            # print(start_date)
+        # return connection to the pool
         self.database.dbConPool.put(con)
-        print(result)
+
+    def _worker_task(self):
+        return

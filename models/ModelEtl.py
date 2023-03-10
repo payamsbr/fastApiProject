@@ -1,6 +1,6 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 from enum import Enum
-from datetime import datetime
 
 
 class EnumJumpTypes(Enum):
@@ -9,23 +9,26 @@ class EnumJumpTypes(Enum):
 
 
 class ModelEtl(BaseModel):
-    id: int | None = None
+    id: Optional[int] = None
     from_column: str = Field(..., description="something")
     to_column: str
     from_node_type: str
     to_node_type: str
     edge_formula: str
     relation_type: str
+    database_name: str
     table_name: str
-    datetime_column: str
-    update_at: str | None = None  # not required, can be None
+    update_at: Optional[str] = None  # not required, can be None
     des: str
-    log: str | None = None  # not required, can be None
-    log_date: str | None = None  # not required, can be None
-    start_date: datetime
-    end_date: datetime
+    log: Optional[str] = None  # not required, can be None
+    log_date: Optional[str] = None  # not required, can be None
+    jump_column: str
     jump_type: EnumJumpTypes
-    update_interval: int
+    jump_size: int
+    jump_start: str
+    jump_end: str
+    cursor: Optional[int] = None
+    busy: Optional[bool] = False
     enabled: bool
 
     class Config:
