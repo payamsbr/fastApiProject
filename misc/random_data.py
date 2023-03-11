@@ -45,7 +45,7 @@ for i in range(0, max_i):
     sub_queries = []
     for j in range(0, max_j):
         duration = random.randint(1, 180)
-        datetime_ms = datetime_ms + random.randint(2*day, 6*day)
+        datetime_ms = datetime_ms + random.randint(int(.2*day), int(.6*day))
         datetime_str = datetime.datetime.fromtimestamp(datetime_ms/1000).strftime("%Y-%m-%d %H:%M:%S")
         nums = random.sample(random_nums, k=2)
         sub_queries.append(f'({i*max_j+j}, \'{nums[0]}\', \'{nums[1]}\', {duration}, \'{datetime_str}\')')
