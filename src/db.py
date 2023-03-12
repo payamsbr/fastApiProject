@@ -32,7 +32,7 @@ class GraphETLDataBase:
         to_column TEXT NOT NULL,
         from_node_type TEXT NOT NULL,
         to_node_type TEXT NOT NULL,
-        edge_formula TEXT NOT NULL,
+        avg_column TEXT NOT NULL,
         relation_type TEXT NOT NULL,
         database_name TEXT NOT NULL,
         table_name TEXT NOT NULL,
@@ -74,16 +74,16 @@ class GraphETLDataBase:
 
     def create_or_update(self, params, etl_id=None):
         if etl_id is None:
-            query = f'''INSERT INTO etl (from_column,to_column,from_node_type,to_node_type,edge_formula, 
+            query = f'''INSERT INTO etl (from_column,to_column,from_node_type,to_node_type,avg_column, 
             relation_type,database_name,table_name,des,jump_column,jump_type,jump_size,jump_start,jump_end,enabled) 
             VALUES ('{params.from_column}','{params.to_column}','{params.from_node_type}','{params.to_node_type}',
-            '{params.edge_formula}','{params.relation_type}','{params.database_name}','{params.table_name}',
+            '{params.avg_column}','{params.relation_type}','{params.database_name}','{params.table_name}',
             '{params.des}','{params.jump_column}',{params.jump_type},{params.jump_size},'{params.jump_start}',
             '{params.jump_end}',{params.enabled});'''
         else:
             query = f'''UPDATE etl SET from_column='{params.from_column}',to_column='{params.to_column}', 
             from_node_type='{params.from_node_type}',to_node_type='{params.to_node_type}', 
-            edge_formula='{params.edge_formula}',relation_type='{params.relation_type}', 
+            avg_column='{params.avg_column}',relation_type='{params.relation_type}', 
             database_name='{params.database_name}',table_name='{params.table_name}', 
             des='{params.des}',jump_column='{params.jump_column}',jump_type={params.jump_type},
             jump_size={params.jump_size},jump_start={params.jump_start},jump_end={params.jump_end},

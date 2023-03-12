@@ -64,7 +64,7 @@ class EtlManager(object):
                 end_timestamp = datetime.datetime.fromisoformat(etl['jump_end']).timestamp()
                 cursor_timestamp = etl['cursor']
                 # initialize cursor
-                if cursor_timestamp is None:
+                if cursor_timestamp is None or len(cursor_timestamp) == 0:
                     cursor_timestamp = start_timestamp
                 # disable ETL if reaches the end
                 if cursor_timestamp >= end_timestamp:
@@ -77,22 +77,46 @@ class EtlManager(object):
                 cur.execute(f"UPDATE [etl] SET [busy]=1 WHERE [id]={etl['id']}")
                 con.commit()
                 # put new task to the pool
-                self.etl_worker_pool.submit(self._worker_task, etl, old_cursor, cursor_timestamp)
-            # cur.execute
-
-            # start_date = etl_data['start_date']
-            # print(start_date)
+                start_datetime = f"'{datetime.datetime.fromtimestamp(old_cursor)}'"
+                end_datetime = f"'{datetime.datetime.fromtimestamp(cursor_timestamp)}'"
+                etl['cursor'] = cursor_timestamp
+                self.etl_worker_pool.submit(self._worker_task, etl, start_datetime, end_datetime)
         # return connection to the pool
         self.database.dbConPool.put(con)
 
     def _worker_task(self, _etl, _start, _end):
-        # todo for jumper type == byDate
         # fetch data from clickhouse
         clickhouse_client = self.clickHousePool.get()
-        query = f"""SELECT {_etl['from_column']}, {_etl['to_column']}, SUM({})"""
-        results = clickhouse_client.execute('SELECT * FROM call_samples LIMIT 1')
+        query = f"""SELECT {_etl['from_column']}, {_etl['to_column']}, SUM({_etl['avg_column']}) AS __SUM, 
+        COUNT(*) AS __COUNT, MIN({_etl['avg_column']}) AS __MIN, MAX({_etl['avg_column']}) AS __MAX 
+        FROM {_etl['table_name']} WHERE {_etl['jump_column']} BETWEEN {_start} AND {_end} 
+        GROUP BY {_etl['from_column']}, {_etl['to_column']}"""
+        results = clickhouse_client.execute(query)
         print(results)
         self.clickHousePool.put(clickhouse_client)
         # insert data to neo4j
-        # update ETL record (sqlite) remove busy
+        # update ETL record (sqlite) change cursor and remove busy
+        con = self.database.dbConPool.get()
+        cur = con.cursor()
+        # todo, check ETL enabled and END limit, to set proper busy value
+        end_timestamp = datetime.datetime.fromisoformat(_etl['jump_end']).timestamp()
+        # terminate
+        if _etl['cursor'] >= end_timestamp:
+            cur.execute(f"UPDATE [etl] SET [cursor]={_etl['cursor']}, [busy]=0, [enabled]=0 WHERE [id]={_etl['id']}")
+            con.commit()
+        # keep running
+        else:
+            cur.execute(f"UPDATE [etl] SET [cursor]={_etl['cursor']} WHERE [id]={_etl['id']}")
+            con.commit()
+            print('done')
+            # shift cursor
+            old_cursor = _etl['cursor']
+            if _etl['jump_type'] == EnumJumpTypes.byDate.value:
+                _etl['cursor'] += _etl['jump_size'] * (60 * 60 * 24)
+            else:
+                _etl['cursor'] += _etl['jump_size']
+            start_datetime = f"'{datetime.datetime.fromtimestamp(old_cursor)}'"
+            end_datetime = f"'{datetime.datetime.fromtimestamp(_etl['cursor'])}'"
+            self.etl_worker_pool.submit(self._worker_task, _etl, start_datetime, end_datetime)
+        self.database.dbConPool.put(con)
         return

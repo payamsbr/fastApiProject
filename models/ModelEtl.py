@@ -14,7 +14,7 @@ class ModelEtl(BaseModel):
     to_column: str
     from_node_type: str
     to_node_type: str
-    edge_formula: str
+    avg_column: str
     relation_type: str
     database_name: str
     table_name: str
