@@ -8,7 +8,7 @@ from queue import Queue
 class GraphETLDataBase:
     dbName: str = None
     dbMaxApiCon: int = None
-    dbConPool: Queue[sqlite3.Connection] = None
+    dbConPool: "Queue[sqlite3.Connection]" = None
 
     def __init__(self):
 

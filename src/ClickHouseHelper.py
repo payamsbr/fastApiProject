@@ -4,9 +4,10 @@ from clickhouse_driver import Client
 
 
 class ClickHouseHelper:
-    clientPool: Queue[Client] = None
+    clientPool: "Queue[Client]" = None
 
     def __init__(self):
+
         # read configurations
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -16,6 +17,7 @@ class ClickHouseHelper:
         password = config['clickhouse']['Pass']
         database = config['clickhouse']['Database']
         pool_size = int(config['clickhouse']['PoolSize'])
+
         # prepare pool
         self.clientPool = Queue(maxsize=pool_size)
         for i in range(0, pool_size):

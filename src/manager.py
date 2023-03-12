@@ -9,6 +9,7 @@ from threading import Timer
 from models.ModelEtl import EnumJumpTypes
 from src.db import GraphETLDataBase
 from src.ClickHouseHelper import ClickHouseHelper
+from src.Neo4jHelper import Neo4jHelper
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 
@@ -27,6 +28,9 @@ class EtlManager(object):
 
         # setup clickhouse
         self.clickHousePool = ClickHouseHelper().clientPool
+
+        # setup neo4j
+        self.neo4jPool = Neo4jHelper().sessionPool
 
         # setup thread pool (read configs)
         thread_num = int(config['etl']['Threads'])
