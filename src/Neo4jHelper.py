@@ -36,3 +36,7 @@ class Neo4jHelper:
         for i in range(0, pool_size):
             session = driver.session()
             self.sessionPool.put(session)
+
+    # requested from threads
+    def submit_data(self, data):
+        return

@@ -30,7 +30,7 @@ class EtlManager(object):
         self.clickHousePool = ClickHouseHelper().clientPool
 
         # setup neo4j
-        self.neo4jPool = Neo4jHelper().sessionPool
+        self.neo4jHelper = Neo4jHelper()
 
         # setup thread pool (read configs)
         thread_num = int(config['etl']['Threads'])
