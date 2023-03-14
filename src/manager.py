@@ -68,7 +68,7 @@ class EtlManager(object):
                 end_timestamp = datetime.datetime.fromisoformat(etl['jump_end']).timestamp()
                 cursor_timestamp = etl['cursor']
                 # initialize cursor
-                if cursor_timestamp is None or len(cursor_timestamp) == 0:
+                if cursor_timestamp is None:
                     cursor_timestamp = start_timestamp
                 # disable ETL if reaches the end
                 if cursor_timestamp >= end_timestamp:
@@ -99,6 +99,7 @@ class EtlManager(object):
         print(results)
         self.clickHousePool.put(clickhouse_client)
         # insert data to neo4j
+        self.neo4jHelper.submit_data(results)
         # update ETL record (sqlite) change cursor and remove busy
         con = self.database.dbConPool.get()
         cur = con.cursor()
@@ -106,6 +107,7 @@ class EtlManager(object):
         end_timestamp = datetime.datetime.fromisoformat(_etl['jump_end']).timestamp()
         # terminate
         if _etl['cursor'] >= end_timestamp:
+            print('finished')
             cur.execute(f"UPDATE [etl] SET [cursor]={_etl['cursor']}, [busy]=0, [enabled]=0 WHERE [id]={_etl['id']}")
             con.commit()
         # keep running

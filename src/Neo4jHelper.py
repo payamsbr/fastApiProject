@@ -10,7 +10,7 @@ but make sure each thread creates its own sessions.
 """
 from queue import Queue
 import configparser
-from neo4j import GraphDatabase, Session
+from neo4j import GraphDatabase, Session, ManagedTransaction, exceptions
 
 
 class Neo4jHelper:
@@ -39,4 +39,31 @@ class Neo4jHelper:
 
     # requested from threads
     def submit_data(self, data):
-        return
+        session = self.sessionPool.get()
+        try:
+            session.execute_write(self._transaction_func, data)
+        except exceptions.Neo4jError as e:
+            print(e)
+        self.sessionPool.put(session)
+
+    @staticmethod
+    def _transaction_func(tx: ManagedTransaction, data_list: list):
+        for data in data_list:
+            d = {"num1": data[0], "num2": data[1], "sum": data[2], "count": data[3], "min": data[4], "max": data[5]}
+            query = f"""MERGE (n1:TNumber {{name: '{d["num1"]}'}})
+MERGE (n2:TNumber {{name:'{d["num2"]}'}})
+MERGE (n1)-[r:TCall]-(n2)
+ON CREATE SET r.sum={d["sum"]}, r.count={d["count"]}, r.min={d["min"]}, r.max={d["max"]}
+ON MATCH SET r.sum=r.sum+{d["sum"]}, r.count=r.count+{d["count"]}, 
+    r.min=(CASE WHEN r.min<{d["min"]} THEN r.min ELSE {d["min"]} END), 
+    r.max=(CASE WHEN r.max>{d["max"]} THEN r.max ELSE {d["max"]} END)"""
+            # print(query)
+            tx.run(query)
+        # result = tx.run("MATCH (c:Person) return c")
+        # print('done')
+        # print(result)
+        # records = list(result)
+        # summary = result.consume()
+        # print(records)
+        # print(summary)
+        # return records
